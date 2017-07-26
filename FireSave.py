@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*- 
 '''
 file: FireSave.py
-version: .02
+version: .03
 description: Python script for manipulation of Fire Pro Wrestling World save files.
 author: Kactus Ken (burningsave@gmail.com)
 '''
@@ -16,9 +16,10 @@ from binascii import hexlify
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".02"
+VER_STRING = ".03"
 OFFSET_MISSIONS = 0xf8
 OFFSET_PROMOTIONS = 0x88
+OFFSET_SORT = 0xb8
 OFFSET_STABLES = 0x98
 OFFSET_WRESTLERS = 0x58
 
@@ -28,7 +29,7 @@ stables = []
 
 # CLI Parser setup
 parser = argparse.ArgumentParser()
-parser.add_argument("-a", help="Print all wrestlers", action="store_true")
+parser.add_argument("-a", help="Sort Alphabetical", action="store_true")
 parser.add_argument("-m", help="Unlock all missions with Rank S", action="store_true")
 parser.add_argument("-r", help="Move all wrestlers from retire to specific Stable", default=0, type=int)
 parser.add_argument("-s", help="Print all Promotions and Stables", action="store_true")
@@ -108,6 +109,50 @@ def mission_update():
 
 	# Complete
 	print "+ Update Complete!"
+
+def sort_alpha():
+	# Create a list of wrestlers
+	list_wrestlers = []
+
+	# Read all of the wrestlers to get their names
+	print "\n+ Reading Wrestlers"
+
+	# Seek to the wrestler header and get offset for wrestler data
+	f.seek(OFFSET_WRESTLERS, 0)
+	offset_wrestlerdata = struct.unpack('i', f.read(4))[0]
+
+	# Seek to the wrestler data structure
+	f.seek(offset_wrestlerdata, 0)
+
+	# Get number of wrestlers
+	wrestlers_count = struct.unpack('i', f.read(4))[0]
+
+	# Loop through all wrestlers
+	for wrestler in range(0, wrestlers_count):
+		wrestler_name = wrestler_parse(wrestler).lstrip()
+		list_wrestlers.append((wrestler_name, wrestler))
+
+	# Sort the list of wrestlers by their name
+	list_wrestlers.sort(key=lambda x: x[0])
+
+	# Seek to the display order
+	f.seek(OFFSET_SORT, 0)
+	offset_sortdata = struct.unpack('i', f.read(4))[0]
+
+	# Seek to the wrestler data structure
+	f.seek(offset_sortdata, 0)
+	preset_count = struct.unpack('i', f.read(4))[0]
+	order_count = struct.unpack('i', f.read(4))[0]
+	pos = f.tell()
+	f.seek(pos, 0)
+	print "%s %s" % (preset_count, order_count)
+
+	for order in range(0, wrestlers_count):
+		hex_value = [hex(10000+list_wrestlers[order][1] >> i & 0xff) for i in (0,8,16,24)]
+		f.write(bytearray(int(i, 16) for i in hex_value))
+
+	for preset in range(0, preset_count):
+		f.write(bytearray(int(i, 16) for i in [hex(preset),'0x00', '0x00', '0x00']))
 
 # Print list of stables
 def stable_print():
@@ -323,6 +368,7 @@ def wrestler_parse(x):
 	# Parse out the costuem data structure
 	costume_parse()
 	print "\t%s. %s %s %s" % (x, wrestler_name1, wrestler_name2, choice)
+	return "%s %s" % (wrestler_name1, wrestler_name2)
 
 # Update the stable for retired wrestlers
 def stable_update():
@@ -357,6 +403,9 @@ def write_zip():
 		print "Unable to create zip file"
 
 # Check CLI Arguments
+if a == True:
+	sort_alpha()
+
 if m == True:
 	mission_update()
 
@@ -366,7 +415,8 @@ if r > 0:
 if s == True:
 	stable_print()
 
+
 f.close()
 
-if (m == True) or (r > 0):
+if (m == True) or (r > 0) or (a == True):
 	write_zip()
