@@ -14,4 +14,8 @@ Functionality:
 
 3. Move all Retired wrestlers to a specific stable (-r stableid)
 
-  python FireSave.py -r 5 savedata.data
+  python FireSave.py -r 5 savedata.dat
+
+4. Sort wrestlers alphabetically in their promotions (-a)
+
+  python FireSave.py -a savedata.dat
