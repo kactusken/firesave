@@ -560,7 +560,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.01")
+top.title("FireGUI v.06")
 top.configure(background="#d9d9d9")
 
 # Create Cherkbox variables
