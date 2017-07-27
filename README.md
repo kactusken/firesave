@@ -1,11 +1,11 @@
 # FireSave
 FireSave is a set of Python scripts that allows for the manipulation of Fire Pro Wrestling World save files. The tool has the following functionality:
 
-**1. Complete all Missions with S Rank - ** The script will modify the completion status for all missions to S rank, this will unlock all of the moves and edit points. 
+**1. Complete all Missions with S Rank -** The script will modify the completion status for all missions to S rank, this will unlock all of the moves and edit points. 
 
-**2. Move all Retired wrestlers to a specific Stable - ** The script allows you choose a stable and assign all of the wrestlers in the Retire section to that stable. This allows you to quickly move all of the wrestlers downloaded from the Steam Workshop to a usable Stable so they can be accessed in the match modes.
+**2. Move all Retired wrestlers to a specific Stable -** The script allows you choose a stable and assign all of the wrestlers in the Retire section to that stable. This allows you to quickly move all of the wrestlers downloaded from the Steam Workshop to a usable Stable so they can be accessed in the match modes.
 
-**3. Alphabetize all wrestlers - ** This functionality will allow you sort all of the wrestlers, regardless of their Promotion and Stable in alphabetical order. This includes the built in default wrestlers.
+**3. Alphabetize all wrestlers -** This functionality will allow you sort all of the wrestlers, regardless of their Promotion and Stable in alphabetical order. This includes the built in default wrestlers.
 
 ## Requirements
 
