@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .06
+version: .07
 description: GUI version of FireSave.py
 author: Kactus Ken (burningsave@gmail.com)
 '''
@@ -18,7 +18,7 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".06"
+VER_STRING = ".07"
 OFFSET_MISSIONS = 0xf8
 OFFSET_PROMOTIONS = 0x88
 OFFSET_SORT = 0xb8
@@ -518,7 +518,7 @@ def Alphabetize():
         f.seek(pos, 0)
 
         DebugPrint(" + Writing new sort order")
-        for order in range(0, wrestlers_count):
+        for order in range(0, len(wrestlers)):
             hex_value = [hex(wrestlers[order][1] >> i & 0xff) for i in (0, 8, 16, 24)]
             f.write(bytearray(int(i, 16) for i in hex_value))
 
@@ -560,7 +560,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.06")
+top.title("FireGUI v.07")
 top.configure(background="#d9d9d9")
 
 # Create Cherkbox variables
