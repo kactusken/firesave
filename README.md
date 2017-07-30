@@ -1,4 +1,4 @@
-# FireSave
+# FireSave v.10
 FireSave is a set of Python scripts that allows for the manipulation of Fire Pro Wrestling World save files. The tool has the following functionality:
 
 **1. Complete all Missions with S Rank -** The script will modify the completion status for all missions to S rank, this will unlock all of the moves and edit points. 
@@ -69,3 +69,10 @@ Format of wrestlerlist.csv:
 
 ## Screenshot
 ![FireGUI](https://raw.githubusercontent.com/kactusken/firesave/master/FireGUI.png "FireGUI")
+
+## Special Thanks
+Mike DG
+Freem
+Carlzilla
+Madhat
+FirePro community!
