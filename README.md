@@ -7,6 +7,54 @@ FireSave is a set of Python scripts that allows for the manipulation of Fire Pro
 
 **3. Alphabetize all wrestlers -** This functionality will allow you sort all of the wrestlers, regardless of their Promotion and Stable in alphabetical order. This includes the built in default wrestlers.
 
+**4. Automatic assign wrestlers -** This function relys on the stables.csv and wrestlerlist.csv file to automatically assign the wrestlers to the specific stables. You can choose between All Wrestlers (ignores current stable) or Retire Only (moves wrestlers just in the Retire list).
+
+I've gone through and have 1300+ setups already. I could use the communities help in adding to the list and having them sort out in to the proper stables.
+
+Format of stables.csv and current stables:
+"Promotion Short","Promotion Long","Stable Short","Stable Long","Alignment (0=Face,1=Neutral,2=Heel)"
+
+**NJPW**
+-   Bullet Club
+-   Chaos
+-   GBH
+-   Hunter Club
+-   Los Ingobernable
+-   Main Unit
+-   Suzuki-gun
+-   Taguchi Japan
+
+**WWE**
+-   205 Live
+-   Legacy
+-   NXT
+-   NXT F
+-   Other
+-   Modern
+-   Modern F
+-   UK
+
+**ECW**
+-   Roster
+
+**WCW**
+-   Roster
+
+**AJPW**
+-   Roster
+
+**Lucha Underground**
+-   Roster
+
+**Indy**
+-   Roster
+
+**TNA**
+-   Roster
+  
+Format of wrestlerlist.csv:
+"Name 1","Name 2","Nickname","Promotion","Stable"
+
 ## Requirements
 
 1. This script requires Python 2.7 ([https://www.python.org/download/releases/2.7/](https://www.python.org/download/releases/2.7/ "https://www.python.org/download/releases/2.7/"))
