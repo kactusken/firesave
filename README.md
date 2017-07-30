@@ -68,7 +68,7 @@ Format of wrestlerlist.csv:
 5. To execute, just double click FireGUI.py and the user interface should become visible.
 
 ## Screenshot
-![FireGUI](https://raw.githubusercontent.com/kactusken/firesave/master/FireGUI.png "FireGUI")
+![FireGUI](https://raw.githubusercontent.com/kactusken/firesave/master/FireGUI_v10.png "FireGUI")
 
 ## Special Thanks
 Mike DG
