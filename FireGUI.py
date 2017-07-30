@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .07
-description: GUI version of FireSave.py
+version: .10
+description: GUI to control FireSave.py
 author: Kactus Ken (burningsave@gmail.com)
 '''
 import csv
@@ -18,17 +18,30 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".07"
-OFFSET_MISSIONS = 0xf8
-OFFSET_PROMOTIONS = 0x88
-OFFSET_SORT = 0xb8
-OFFSET_STABLES = 0x98
+VER_STRING = ".10"
+OFFSET_OPTIONS = 0x18
+OFFSET_REMAP = 0x28
+OFFSET_MENU = 0x38
+OFFSET_STATS = 0x48
 OFFSET_WRESTLERS = 0x58
+OFFSET_REFEREES = 0x68
+OFFSET_RING = 0x78
+OFFSET_PROMOTIONS = 0x88
+OFFSET_STABLES = 0x98
+OFFSET_PRESET = 0xa8
+OFFSET_SORT = 0xb8
+OFFSET_MOVES = 0xc8
+OFFSET_TITLEMATCH = 0xd8
+OFFSET_ACHIEVEMENT = 0xe8
+OFFSET_MISSIONS = 0xf8
+OFFSET_ONLINE = 0x108
+OFFSET_WORKSHOP = 0x118
 
 # Global Variables
 promotions = []
 stables = []
 wrestlers = []
+wrestlerlist = []
 f = None
 
 # Function to add list of default wrestlers
@@ -80,13 +93,11 @@ def GetSaveFilePath():
     ent_OutputFile.insert(0, filename_SaveFile.replace(".dat", "_edited.dat"))
     lst_Stables.delete(0, END)
 
-
 # Function for button to ask for Output file
 def GetOutputPath():
     filename_SaveFile = tkFileDialog.asksaveasfilename(initialdir="C:\\", title="Select Output File Path",
                                                        filetypes=(("dat files", "*dat"), ("all files", "*.*")))
     ent_OutputFile.insert(0, filename_SaveFile)
-
 
 # Function to print status updates to the text area
 def DebugPrint(dbg_message):
@@ -96,6 +107,8 @@ def DebugPrint(dbg_message):
     # Scroll to the bottom
     txt_Output.see(END)
 
+    # Print to console
+    print dbg_message
 
 # Function to open the save file
 def OpenSave():
@@ -117,7 +130,6 @@ def OpenSave():
         tkMessageBox.showerror("FireGUI Error", "Unable to open savedata.dat file")
         return 0
 
-
 # Function to close the save file
 def CloseSave():
     global f
@@ -125,7 +137,6 @@ def CloseSave():
     # Close the file and set to none
     f.close()
     f = None
-
 
 # Function to save the edit savedata as the password protected zip file
 def SaveZip():
@@ -139,11 +150,10 @@ def SaveZip():
         DebugPrint(" + Unable to generate save file zip")
         return 0
 
-
 # Function to retrieve the list of stables in the save file
 def GetStableList():
     global f
-
+    lst_Stables.delete(0, END)
     DebugPrint(" + Loading list of Stables")
     valid = OpenSave()
     if valid == 1:
@@ -224,7 +234,6 @@ def GetStableList():
         CloseSave()
         DebugPrint(" + Completed listing of stables")
 
-
 # Function to validate the configuration file
 def ValidateConfig():
     global val_Stable
@@ -245,7 +254,6 @@ def ValidateConfig():
         return 0
     else:
         return 1
-
 
 # Function to update all the missions to rank S
 def MissionUpdate():
@@ -333,11 +341,21 @@ def WrestlerParse(x):
     # Check if wrestler is in Retire, if so, update with the specified stable
     choice = ""
     if val_Stable.get() == 1:
-        if wrestler_groupID == 0:
+        if wrestler_groupID < 100:
             choice = "** UPDATED Wrestler Stable **"
             f.seek(offset_previous, 0)
             f.write(bytearray(int(i, 16) for i in [hex(lst_Stables.index(ACTIVE)), '0x00', '0x00', '0x00']))
             f.seek(offset_next, 0)
+
+    if (val_Assignment.get() == 1) and ((val_RetireOnly.get() == 0) or (wrestler_groupID == 0)):
+        reassign = GetBestMatch(wrestler_name1, wrestler_name2,  wrestler_nickName)
+        if reassign > 0:
+            DebugPrint(("\ + FOUND MATCH: %s %s - %s %s") % (wrestler_name1, wrestler_name2, stables[reassign][0], stables[reassign][1]))
+            f.seek(offset_previous, 0)
+            f.write(bytearray(int(i, 16) for i in [hex(reassign), '0x00', '0x00', '0x00']))
+            f.seek(offset_next, 0)
+        else:
+            DebugPrint((" - NO MATCH FOUND: %s %s" % (wrestler_name1, wrestler_name2)))
 
     # Continue parsing wrestler structure
     wrestler_fightStyle = f.read(4)
@@ -434,7 +452,7 @@ def WrestlerParse(x):
     wrestler_costumeVer = f.read(4)
     wrestler_costumeStance = f.read(4)
     wrestler_costumeFormSize = f.read(4)
-    # Parse out the costuem data structure
+    # Parse out the costume data structure
     CostumeParse()
     DebugPrint("\t%s. %s %s %s" % (x, wrestler_name1, wrestler_name2, choice))
     return "%s %s" % (wrestler_name1, wrestler_name2)
@@ -518,7 +536,7 @@ def Alphabetize():
         f.seek(pos, 0)
 
         DebugPrint(" + Writing new sort order")
-        for order in range(0, len(wrestlers)):
+        for order in range(0,len(wrestlers)):
             hex_value = [hex(wrestlers[order][1] >> i & 0xff) for i in (0, 8, 16, 24)]
             f.write(bytearray(int(i, 16) for i in hex_value))
 
@@ -529,6 +547,431 @@ def Alphabetize():
     except:
         DebugPrint(" + Alphabetize Update Failed!")
         return 0
+
+# Function to fix header offsets
+def FixHeader(offset, correction):
+    # Move to the original offset
+    f.seek(offset, 0)
+
+    # Read in the offset value
+    original = struct.unpack('i', f.read(4))[0]
+    fixed = int(original + correction)
+
+    # Move back to offset
+    f.seek(offset, 0)
+
+    # Write the new offset
+    hex_value = [hex(fixed >> i & 0xff) for i in (0, 8, 16, 24)]
+    f.write(bytearray(int(i, 16) for i in hex_value))
+
+# Function to clean up spaces
+def CleanUpString(dirty):
+    dirty = dirty.lstrip().rstrip().lower()
+    return dirty
+
+# Function to find the proper stable
+def FindStable(prom, stab):
+    # Global Variables
+    global promotions
+    global stables
+
+    # Initialize found variables
+    fnd_promotion = 0
+    fnd_stable = 0
+
+    # Check each promotion to find the valid promotion
+    for p in range(0, len(promotions)):
+        if CleanUpString(promotions[p]) == CleanUpString(prom):
+            fnd_promotion = p
+
+    # Check each stable to find the valid stable
+    for s in range(0, len(stables)):
+        if promotions[fnd_promotion] == stables[s][0]:
+            if CleanUpString(stables[s][1]) == CleanUpString(stab):
+                fnd_stable = s
+
+    # Return the stable number
+    return fnd_stable
+
+# Function to identify the best CSV match
+def GetBestMatch(name1, name2, nickname):
+    # Initialize found values
+    currentmatch = 0
+    currentvalue = 0
+
+    # Clean up the inputs
+    name1 = CleanUpString(name1)
+    name2 = CleanUpString(name2)
+    nickname = CleanUpString(nickname)
+    DebugPrint(" + Searching for best match for: %s %s %s" % (name1, name2, nickname))
+    top.update_idletasks()
+
+    # Check each field for a match
+    for wrestler in wrestlerlist:
+        value = 0
+        if name1 == CleanUpString(wrestler[0]):
+            value = value + 1
+        if name2 == CleanUpString(wrestler[1]):
+            value = value + 1
+        if nickname == CleanUpString(wrestler[2]):
+            value = value + 1
+
+        # If matching at least 2 fields
+        if value > 1:
+            DebugPrint("\t + Possible Match (%d - %s %s %s %s %s)" % (value, wrestler[0], wrestler[1], wrestler[2], wrestler[3], wrestler[4]))
+
+        # If this is a greater match then we previously found
+        if value > currentvalue:
+            currentmatch = FindStable(wrestler[3], wrestler[4])
+            currentvalue = value
+
+    # Only return a match if there are 2 or more field matches
+    if currentvalue > 1:
+        return currentmatch
+    else:
+        return 0
+
+# Function to Create and Assign to Promotions
+def StableCreate():
+    # Global variables
+    global f
+    global promotions
+    global stables
+    global wrestlerlist
+
+    # Initialize new list of promotions and stables
+    promotions = []
+    stables = []
+
+    # Get the existing list of promotions and stables
+    DebugPrint(" + Loading list of existing Promotions and Stables")
+
+    # Seek to the promotions header and get offset for promotion data
+    f.seek(OFFSET_PROMOTIONS, 0)
+    offset_promotiondata = struct.unpack('i', f.read(4))[0]
+
+    # Get length of file
+    f.seek(0,2)
+    f_len = f.tell()
+
+    # Seek to the mission data structure
+    f.seek(offset_promotiondata, 0)
+
+    # Get number of promotions
+    promotions_count = struct.unpack('i', f.read(4))[0]
+
+    # Loop through all promotions
+    for x in range(0, promotions_count):
+        # Get long name
+        promotion_long_len = int(hexlify(f.read(1)), 16)
+        promotion_long = f.read(promotion_long_len)
+
+        # Get short name
+        promotion_short_len = int(hexlify(f.read(1)), 16)
+        promotion_short = f.read(promotion_short_len)
+
+        # Get Logo ID
+        promotion_logoid = struct.unpack('i', f.read(4))
+
+        # Append Promotions to array
+        if x == 0:
+            promotions.append("Retire")
+            DebugPrint("\t%s. %s" % (x, "Retire"))
+        else:
+            promotions.append("%s" % (promotion_short))
+            DebugPrint("\t%s. %s" % (x, promotion_long))
+
+    # Get Current Place
+    f_initial = f.tell()
+
+    # Save remaining file chunks
+    f_remains = f.read(f_len - f_initial)
+
+    # Move back to end of Promotions List
+    f.seek(f_initial)
+
+    DebugPrint(" + Checking to see if list of Promotions exists")
+
+    # Open Stables list
+    c = open("stables.csv","rb")
+    reader = csv.reader(c)
+    added = 0
+    for row in reader:
+        fnd = False
+        for team in promotions:
+            if row[0] == team:
+                fnd = True
+
+        # If promotion doesn't exist, added in to the file
+        if fnd == False:
+            DebugPrint(" + Adding %s as a Promotion" % row[0])
+            # Write Long Name
+            f.write(chr(len(row[1])))
+            f.write(row[1])
+
+            #Write Short Name
+            f.write(chr(len(row[0])))
+            f.write(row[0])
+
+            # Write Logo ID
+            f.write(bytearray(int(i, 16) for i in ['0x00', '0x00', '0x00', '0x00']))
+
+            promotions.append(row[0])
+            added = added + 1
+
+    # Clean up the CSV reader
+    reader = None
+    c.close()
+    c = None
+
+    # If we added new promotions, then we need to update the display order and other offsets
+    if added > 0:
+        DebugPrint(" + Fixing Promotions Display Order")
+        # Get position after the new Promotion data
+        f_before = f.tell()
+
+        # Write the rest of the original save data
+        f.write(f_remains)
+
+        # Go back to before Promotion display order
+        f.seek(f_before,0)
+
+        # Move Ahead of the original display order
+        f.seek(4 * promotions_count,1)
+
+        # Get our current insert position
+        f_before = f.tell()
+
+        # Move to the end and get the new length
+        f.seek(0,2)
+        f_newlen = f.tell()
+
+        # Move back to the end of the original display order
+        f.seek(f_before,0)
+
+        # Copy the rest of the save data to memory
+        f_remains = f.read(f_newlen-f_before)
+
+        # Go back again to before the original display order
+        f.seek(f_before,0)
+
+        # Add the newly created promotions to the display order
+        for x in range(0, added):
+            f.write(chr(x + promotions_count))
+            f.write(bytearray(int(i, 16) for i in ['0x00', '0x00', '0x00']))
+
+        # Copy the rest of the save data file back in place
+        f.write(f_remains)
+
+        # Move to the end and get the new length
+        f.seek(0, 2)
+        f_newlen = f.tell()
+
+        # Move to the promotion count field
+        f.seek(offset_promotiondata)
+
+        DebugPrint(" + Fixing number of promotions")
+        # Update with the new number of promotions
+        hex_value = [hex(len(promotions) >> i & 0xff) for i in (0, 8, 16, 24)]
+        f.write(bytearray(int(i, 16) for i in hex_value))
+
+        # Recalculate Offset data for the header
+        DebugPrint(" + Fixing header offsets")
+        correction = f_newlen - f_len
+        FixHeader(OFFSET_STABLES, correction)
+        FixHeader(OFFSET_PRESET, correction)
+        FixHeader(OFFSET_SORT, correction)
+        FixHeader(OFFSET_MOVES, correction)
+        FixHeader(OFFSET_TITLEMATCH, correction)
+        FixHeader(OFFSET_ACHIEVEMENT, correction)
+        FixHeader(OFFSET_MISSIONS, correction)
+        FixHeader(OFFSET_ONLINE, correction)
+        FixHeader(OFFSET_WORKSHOP, correction)
+
+    DebugPrint(" + Promotions addition completed!")
+
+    # Check for Stables
+    DebugPrint(" + Reading Stables")
+
+    # Seek to the stables header and get offset for stable data
+    f.seek(OFFSET_STABLES, 0)
+    offset_stabledata = struct.unpack('i', f.read(4))[0]
+
+    # Seek to the stable data structure
+    f.seek(offset_stabledata, 0)
+
+    # Get number of stables
+    stables_count = struct.unpack('i', f.read(4))[0]
+
+    # Loop through all stables
+    for stable in range(0, stables_count):
+        # Get long name
+        stable_long_len = int(hexlify(f.read(1)), 16)
+        stable_long = f.read(stable_long_len)
+
+        # Get short name
+        stable_short_len = int(hexlify(f.read(1)), 16)
+        stable_short = f.read(stable_short_len)
+
+        # Get Promotion ID
+        stable_promotionid = struct.unpack('i', f.read(4))[0]
+
+        # Get Alignment
+        stable_alignment = struct.unpack('i', f.read(4))[0]
+
+        # Load stables in to data structure
+        if stable == 0:
+            DebugPrint("\t%s. %s - %s (%s)" % (stable, "Retire", "", promotions[stable_promotionid]))
+            stables.append((promotions[stable_promotionid],"Retire"))
+
+        else:
+            DebugPrint("\t%s. %s - %s (%s)" % (stable, stable_short, stable_long, promotions[stable_promotionid]))
+            stables.append((promotions[stable_promotionid], stable_short))
+
+    DebugPrint(" + Loaded existing stables")
+
+    # Get Current Place
+    f_initial = f.tell()
+
+    # Save remaining file chunks
+    f_remains = f.read(f_len - f_initial)
+
+    # Move back to end of Promotions List
+    f.seek(f_initial)
+
+    # Load stables from CSV
+    c = open("stables.csv", "rb")
+    reader = csv.reader(c)
+    added = 0
+    for row in reader:
+        fnd = False
+
+        # Find Promotion First
+        for x in range(0, len(promotions)):
+            if row[0] == promotions[x]:
+                promotion_id = x
+
+        for x in range(0, len(stables)):
+            if stables[x][0] == promotions[promotion_id]:
+                if stables[x][1] == row[2]:
+                    fnd = True
+
+        # If promotion doesn't exist, added in to the file
+        if fnd == False:
+            DebugPrint(" + Adding %s as a Stable" % row[2])
+            # Write Long Name
+            f.write(chr(len(row[3])))
+            f.write(row[3])
+
+            # Write Short Name
+            f.write(chr(len(row[2])))
+            f.write(row[2])
+
+            # Write Promotion ID
+            hex_value = [hex(int(promotion_id) >> i & 0xff) for i in (0, 8, 16, 24)]
+            f.write(bytearray(int(i, 16) for i in hex_value))
+
+            # Write Alignment
+            hex_value = [hex(int(row[4]) >> i & 0xff) for i in (0, 8, 16, 24)]
+            f.write(bytearray(int(i, 16) for i in hex_value))
+
+
+            stables.append((promotion_id, row[2]))
+            added = added + 1
+
+    # Clean up the CSV reader
+    reader = None
+    c.close()
+    c = None
+
+    # If we added new stables, then we need to update the display order and other offsets
+    if added > 0:
+        DebugPrint(" + Fixing Stables Display Order")
+        # Get position after the new Stable data
+        f_before = f.tell()
+
+        # Write the rest of the original save data
+        f.write(f_remains)
+
+        # Go back to before Stable display order
+        f.seek(f_before, 0)
+
+        # Move Ahead of the original display order
+        f.seek(4 * stables_count, 1)
+
+        # Get our current insert position
+        f_before = f.tell()
+
+        # Move to the end and get the new length
+        f.seek(0, 2)
+        f_newlen = f.tell()
+
+        # Move back to the end of the original display order
+        f.seek(f_before, 0)
+
+        # Copy the rest of the save data to memory
+        f_remains = f.read(f_newlen - f_before)
+
+        # Go back again to before the original display order
+        f.seek(f_before, 0)
+
+        # Add the newly created stables to the display order
+        for x in range(0, added):
+            f.write(chr(x + stables_count))
+            f.write(bytearray(int(i, 16) for i in ['0x00', '0x00', '0x00']))
+
+        # Copy the rest of the save data file back in place
+        f.write(f_remains)
+
+        # Move to the end and get the new length
+        f.seek(0, 2)
+        f_newlen = f.tell()
+
+        # Move to the stable count field
+        f.seek(offset_stabledata)
+
+        # Update with the new number of promotions
+        DebugPrint(" + Fixing number of Stables")
+        hex_value = [hex(len(stables) >> i & 0xff) for i in (0, 8, 16, 24)]
+        f.write(bytearray(int(i, 16) for i in hex_value))
+
+        # Recalculate Offset data for the header
+        DebugPrint(" + Fixing header offsets")
+        correction = f_newlen - f_len
+        FixHeader(OFFSET_PRESET, correction)
+        FixHeader(OFFSET_SORT, correction)
+        FixHeader(OFFSET_MOVES, correction)
+        FixHeader(OFFSET_TITLEMATCH, correction)
+        FixHeader(OFFSET_ACHIEVEMENT, correction)
+        FixHeader(OFFSET_MISSIONS, correction)
+        FixHeader(OFFSET_ONLINE, correction)
+        FixHeader(OFFSET_WORKSHOP, correction)
+
+    DebugPrint(" + Stables addition completed!")
+
+    # Load Wrestler List in to Memory
+    wrestlerlist = []
+    c = open("wrestlerlist.csv", "rb")
+    reader = csv.reader(c)
+    for row in reader:
+        # Name 1, Name 2, Nick Name, Promotion, Stable
+        wrestlerlist.append((row[0],row[1],row[2],row[3],row[4]))
+    c.close()
+
+    # Seek to the wrestler header and get offset for wrestler data
+    f.seek(OFFSET_WRESTLERS, 0)
+    offset_wrestlerdata = struct.unpack('i', f.read(4))[0]
+
+    # Seek to the wrestler data structure
+    f.seek(offset_wrestlerdata, 0)
+
+    # Get number of wrestlers
+    wrestlers_count = struct.unpack('i', f.read(4))[0]
+    # Loop through all wrestlers
+    for wrestler in range(0, wrestlers_count):
+        wrestler_name = WrestlerParse(wrestler).lstrip()
+
+    return 1
 
 # Main FireSave function
 def FireSave():
@@ -547,6 +990,9 @@ def FireSave():
             if val_Stable.get() == 1:
                 success = StableUpdate()
 
+            if val_Assignment.get() == 1:
+                success = StableCreate()
+
         # Close the Save File
         CloseSave()
 
@@ -556,17 +1002,19 @@ def FireSave():
             if SaveZip() == 1:
                 AskReplace()
 
-
+# GUI Creation
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.07")
+top.title("FireGUI v.10")
 top.configure(background="#d9d9d9")
 
-# Create Cherkbox variables
+# Create Checkbox variables
 val_Alpha = IntVar()
+val_Assignment = IntVar()
 val_Mission = IntVar()
 val_Stable = IntVar()
+val_RetireOnly = IntVar()
 
 # Create the Interface
 lf_Configuration = LabelFrame(top)
@@ -722,6 +1170,52 @@ chk_Stable.configure(text='''Stable Move''')
 chk_Stable.configure(onvalue=1)
 chk_Stable.configure(offvalue=0)
 chk_Stable.configure(variable=val_Stable)
+
+chk_Assignment = Checkbutton(lf_Configuration)
+chk_Assignment.place(relx=0.175, rely=0.89, relheight=0.08
+                 , relwidth=0.25)
+chk_Assignment.configure(activebackground="#d9d9d9")
+chk_Assignment.configure(activeforeground="#000000")
+chk_Assignment.configure(background="#d9d9d9")
+chk_Assignment.configure(disabledforeground="#a3a3a3")
+chk_Assignment.configure(foreground="#000000")
+chk_Assignment.configure(highlightbackground="#d9d9d9")
+chk_Assignment.configure(highlightcolor="black")
+chk_Assignment.configure(justify=LEFT)
+chk_Assignment.configure(text='''Assign Wrestlers''')
+chk_Assignment.configure(onvalue=1)
+chk_Assignment.configure(offvalue=0)
+chk_Assignment.configure(variable=val_Assignment)
+
+rad_RetireOnly = Radiobutton(lf_Configuration)
+rad_RetireOnly.place(relx=0.42, rely=0.89, relheight=0.08
+                 , relwidth=0.20)
+rad_RetireOnly.configure(activebackground="#d9d9d9")
+rad_RetireOnly.configure(activeforeground="#000000")
+rad_RetireOnly.configure(background="#d9d9d9")
+rad_RetireOnly.configure(disabledforeground="#a3a3a3")
+rad_RetireOnly.configure(foreground="#000000")
+rad_RetireOnly.configure(highlightbackground="#d9d9d9")
+rad_RetireOnly.configure(highlightcolor="black")
+rad_RetireOnly.configure(justify=LEFT)
+rad_RetireOnly.configure(text='''All Wrestlers''')
+rad_RetireOnly.configure(value=0)
+rad_RetireOnly.configure(variable=val_RetireOnly)
+
+rad_RetireOnly = Radiobutton(lf_Configuration)
+rad_RetireOnly.place(relx=0.6, rely=0.89, relheight=0.08
+                 , relwidth=0.25)
+rad_RetireOnly.configure(activebackground="#d9d9d9")
+rad_RetireOnly.configure(activeforeground="#000000")
+rad_RetireOnly.configure(background="#d9d9d9")
+rad_RetireOnly.configure(disabledforeground="#a3a3a3")
+rad_RetireOnly.configure(foreground="#000000")
+rad_RetireOnly.configure(highlightbackground="#d9d9d9")
+rad_RetireOnly.configure(highlightcolor="black")
+rad_RetireOnly.configure(justify=LEFT)
+rad_RetireOnly.configure(text='''Retire Only''')
+rad_RetireOnly.configure(value=1)
+rad_RetireOnly.configure(variable=val_RetireOnly)
 
 lbl_Actions = Label(lf_Configuration)
 lbl_Actions.place(relx=0.1, rely=0.79, height=21, width=49)
