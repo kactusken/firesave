@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .10
+version: .11
 description: GUI to control FireSave.py
 author: Kactus Ken (burningsave@gmail.com)
 '''
@@ -18,7 +18,7 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".10"
+VER_STRING = ".11"
 OFFSET_OPTIONS = 0x18
 OFFSET_REMAP = 0x28
 OFFSET_MENU = 0x38
@@ -350,12 +350,12 @@ def WrestlerParse(x):
     if (val_Assignment.get() == 1) and ((val_RetireOnly.get() == 0) or (wrestler_groupID == 0)):
         reassign = GetBestMatch(wrestler_name1, wrestler_name2,  wrestler_nickName)
         if reassign > 0:
-            DebugPrint(("\ + FOUND MATCH: %s %s - %s %s") % (wrestler_name1, wrestler_name2, stables[reassign][0], stables[reassign][1]))
+            DebugPrint(("\t + FOUND MATCH: %s %s - %s %s") % (wrestler_name1, wrestler_name2, stables[reassign][0], stables[reassign][1]))
             f.seek(offset_previous, 0)
             f.write(bytearray(int(i, 16) for i in [hex(reassign), '0x00', '0x00', '0x00']))
             f.seek(offset_next, 0)
         else:
-            DebugPrint((" - NO MATCH FOUND: %s %s" % (wrestler_name1, wrestler_name2)))
+            DebugPrint((" - NO MATCH FOUND: %s %s %d" % (wrestler_name1, wrestler_name2, reassign)))
 
     # Continue parsing wrestler structure
     wrestler_fightStyle = f.read(4)
@@ -625,6 +625,7 @@ def GetBestMatch(name1, name2, nickname):
             currentmatch = FindStable(wrestler[3], wrestler[4])
             currentvalue = value
 
+
     # Only return a match if there are 2 or more field matches
     if currentvalue > 1:
         return currentmatch
@@ -770,7 +771,7 @@ def StableCreate():
         # Move to the promotion count field
         f.seek(offset_promotiondata)
 
-        DebugPrint(" + Fixing number of promotions")
+        DebugPrint(" + Fixing number of promotions (%d)" % len(promotions))
         # Update with the new number of promotions
         hex_value = [hex(len(promotions) >> i & 0xff) for i in (0, 8, 16, 24)]
         f.write(bytearray(int(i, 16) for i in hex_value))
@@ -876,7 +877,7 @@ def StableCreate():
             f.write(bytearray(int(i, 16) for i in hex_value))
 
 
-            stables.append((promotion_id, row[2]))
+            stables.append((promotions[promotion_id], row[2]))
             added = added + 1
 
     # Clean up the CSV reader
@@ -1006,7 +1007,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.10")
+top.title("FireGUI v.11")
 top.configure(background="#d9d9d9")
 
 # Create Checkbox variables
