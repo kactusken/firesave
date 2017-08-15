@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .11
+version: .12
 description: GUI to control FireSave.py
 author: Kactus Ken (burningsave@gmail.com)
 '''
@@ -18,7 +18,7 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".11"
+VER_STRING = ".12"
 OFFSET_OPTIONS = 0x18
 OFFSET_REMAP = 0x28
 OFFSET_MENU = 0x38
@@ -350,7 +350,7 @@ def WrestlerParse(x):
     if (val_Assignment.get() == 1) and ((val_RetireOnly.get() == 0) or (wrestler_groupID == 0)):
         reassign = GetBestMatch(wrestler_name1, wrestler_name2,  wrestler_nickName)
         if reassign > 0:
-            DebugPrint(("\t + FOUND MATCH: %s %s - %s %s") % (wrestler_name1, wrestler_name2, stables[reassign][0], stables[reassign][1]))
+            DebugPrint((" + FOUND MATCH: %s %s - %s %s") % (wrestler_name1, wrestler_name2, stables[reassign][0], stables[reassign][1]))
             f.seek(offset_previous, 0)
             f.write(bytearray(int(i, 16) for i in [hex(reassign), '0x00', '0x00', '0x00']))
             f.seek(offset_next, 0)
@@ -455,7 +455,10 @@ def WrestlerParse(x):
     # Parse out the costume data structure
     CostumeParse()
     DebugPrint("\t%s. %s %s %s" % (x, wrestler_name1, wrestler_name2, choice))
-    return "%s %s" % (wrestler_name1, wrestler_name2)
+    if wrestler_isReverseNameDispOrder == 1:
+        return "%s%s%s" % (wrestler_name2, wrestler_delimiter, wrestler_name1)
+    else:
+        return "%s%s%s" % (wrestler_name1, wrestler_delimiter, wrestler_name2)
 
 # Function to replace stable of retired wrestlers
 def StableUpdate():
@@ -515,6 +518,7 @@ def Alphabetize():
 
         # Get number of wrestlers
         wrestlers_count = struct.unpack('i', f.read(4))[0]
+
         # Loop through all wrestlers
         for wrestler in range(0, wrestlers_count):
             wrestler_name = WrestlerParse(wrestler).lstrip()
@@ -523,6 +527,11 @@ def Alphabetize():
         # Sort the list of wrestlers by their name
         DebugPrint(" + Sorting Wrestlers")
         wrestlers.sort(key=lambda x: x[0])
+
+        # Print Sorted List
+        z = 0;
+        for wrestler in wrestlers:
+            DebugPrint("\t%d. %s" % (z, wrestler[0]))
 
         # Seek to the display order
         f.seek(OFFSET_SORT, 0)
@@ -1007,7 +1016,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.11")
+top.title("FireGUI v.12")
 top.configure(background="#d9d9d9")
 
 # Create Checkbox variables
