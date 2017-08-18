@@ -73,8 +73,4 @@ Format of wrestlerlist.csv:
 ![FireGUI](https://raw.githubusercontent.com/kactusken/firesave/master/FireGUI_v10.png "FireGUI")
 
 ## Special Thanks
-Mike DG
-Freem
-Carlzilla
-Madhat
-FirePro community! 
+Mike DG, Freem, Carlzilla, Madhat, and of course the FirePro community! 
