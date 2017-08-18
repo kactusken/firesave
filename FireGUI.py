@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .12
-description: GUI to control FireSave.py
+version: .15
+description: GUI to manipulate Fire Pro Wresling World (FPWW) save files
 author: Kactus Ken (burningsave@gmail.com)
 '''
 import csv
@@ -18,7 +18,7 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".12"
+VER_STRING = ".15"
 OFFSET_OPTIONS = 0x18
 OFFSET_REMAP = 0x28
 OFFSET_MENU = 0x38
@@ -313,7 +313,7 @@ def WrestlerParse(x):
     wrestler_ver = f.read(4)
     wrestler_sortingOrder = f.read(4)
     wrestler_weightClass = f.read(4)
-    wrestler_isReverseNameDispOrder = f.read(1)
+    wrestler_isReverseNameDispOrder = int(hexlify(f.read(1)), 16)
     wrestler_name1_len = int(hexlify(f.read(1)), 16)
     wrestler_name1 = f.read(wrestler_name1_len)
     wrestler_name2_len = int(hexlify(f.read(1)), 16)
@@ -449,6 +449,8 @@ def WrestlerParse(x):
     wrestler_editPoint = f.read(4)
     wrestler_criticalMoveName_len = int(hexlify(f.read(1)), 16)
     wrestler_criticalMoveName = f.read(wrestler_criticalMoveName_len)
+    wrestler_texCacheID = f.read(16)
+    wrestler_invalidateTexCache = f.read(1)
     wrestler_costumeVer = f.read(4)
     wrestler_costumeStance = f.read(4)
     wrestler_costumeFormSize = f.read(4)
@@ -1016,7 +1018,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.12")
+top.title("FireGUI v.15")
 top.configure(background="#d9d9d9")
 
 # Create Checkbox variables
