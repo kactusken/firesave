@@ -1,5 +1,6 @@
 # FireSave v.16
 2017-08-21 - Fixed Retire Only logic
+
 2017-08-18 - Added support for Version 9005
 
 FireSave is a Python script that allows for the manipulation of Fire Pro Wrestling World save files. The tool has the following functionality:
