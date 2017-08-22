@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .15
-description: GUI to manipulate Fire Pro Wresling World (FPWW) save files
+version: .16
+description: GUI to control FireSave.py
 author: Kactus Ken (burningsave@gmail.com)
 '''
 import csv
@@ -18,7 +18,7 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".15"
+VER_STRING = ".16"
 OFFSET_OPTIONS = 0x18
 OFFSET_REMAP = 0x28
 OFFSET_MENU = 0x38
@@ -341,7 +341,7 @@ def WrestlerParse(x):
     # Check if wrestler is in Retire, if so, update with the specified stable
     choice = ""
     if val_Stable.get() == 1:
-        if wrestler_groupID < 100:
+        if ((wrestler_groupID == 0) and val_RetireOnly.get() == 1) or (val_RetireOnly.get() == 0):
             choice = "** UPDATED Wrestler Stable **"
             f.seek(offset_previous, 0)
             f.write(bytearray(int(i, 16) for i in [hex(lst_Stables.index(ACTIVE)), '0x00', '0x00', '0x00']))
@@ -1018,7 +1018,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.15")
+top.title("FireGUI v.16")
 top.configure(background="#d9d9d9")
 
 # Create Checkbox variables
