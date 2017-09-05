@@ -1,4 +1,5 @@
 # FireSave v.18
+Supported Version: .9007
 * 2017-09-05 - Fixed handling of long file paths used in theme music
 * 2017-08-28 - Added support for Version 9006
 * 2017-08-21 - Fixed Retire Only logic
