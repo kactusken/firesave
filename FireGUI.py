@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 file: FireGui.py
-version: .17
+version: .18
 description: GUI to control FireSave.py
 author: Kactus Ken (burningsave@gmail.com)
 '''
@@ -18,7 +18,7 @@ from Tkinter import *
 from zipfile import ZipFile
 
 # Constants
-VER_STRING = ".17"
+VER_STRING = ".18"
 OFFSET_OPTIONS = 0x18
 OFFSET_REMAP = 0x28
 OFFSET_MENU = 0x38
@@ -451,8 +451,14 @@ def WrestlerParse(x):
     wrestler_criticalMoveName = f.read(wrestler_criticalMoveName_len)
     wrestler_texCacheID = f.read(16)
     wrestler_invalidateTexCache = f.read(1)
+
+    # Read the theme length as the correct length
     wrestler_theme_len = int(hexlify(f.read(1)), 16)
+    if (wrestler_theme_len > 127):
+        f.seek(1,1)
+
     wrestler_theme = f.read(wrestler_theme_len)
+
     wrestler_costumeVer = f.read(4)
     wrestler_costumeStance = f.read(4)
     wrestler_costumeFormSize = f.read(4)
@@ -1020,7 +1026,7 @@ def FireSave():
 # Create root window
 top = Tk()
 top.geometry("539x645+1328+563")
-top.title("FireGUI v.17")
+top.title("FireGUI v.18")
 top.configure(background="#d9d9d9")
 
 # Create Checkbox variables
